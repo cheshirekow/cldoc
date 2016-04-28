@@ -21,6 +21,7 @@ import comment
 import nodes
 import includepaths
 import documentmerger
+import json
 
 from . import example
 from . import utf8
@@ -50,7 +51,7 @@ if platform.system() == 'Darwin':
         if not lname is None:
             cindex.Config.set_library_file(lname)
 else:
-    versions = [None, '3.5', '3.4', '3.3', '3.2']
+    versions = [None, '3.6', '3.5', '3.4', '3.3', '3.2']
 
     for v in versions:
         name = 'clang'
@@ -72,15 +73,61 @@ except cindex.LibclangError as e:
     sys.stderr.write("\nFatal: Failed to locate libclang library. cldoc depends on libclang for parsing sources, please make sure you have libclang installed.\n" + str(e) + "\n\n")
     sys.exit(1)
 
+class ChangeDir(object):
+    """Provides 'with' semantics for os.chdir(). Will change to the desired directory and then
+       change back when leaving scope. Example:
+
+       os.chdir(os.expanduser('~'))
+       print os.getcwd()         # e.g. '/home/josh'
+       with ChangeDir('/tmp'):
+           print os.getcwd()     # '/tmp'
+       print os.getcwd()         # e.g. '/home/josh
+    """
+    # TODO(josh): investigate https://github.com/jaraco/path.py
+
+    def __init__(self, targetdir):
+        self.targetdir = targetdir
+        self.old_cwd = ''
+
+    def __enter__(self):
+        self.old_cwd = os.getcwd()
+        os.chdir(self.targetdir)
+
+    def __exit__(self, exception_type, exception_value, traceback):
+        os.chdir(self.old_cwd)
+        return exception_value is None
+
+
+def strip_flag(flags, flag, nargs=0):
+    flag_index = flags.index(flag)
+    if flag_index != -1:
+        flags.pop(flag_index)
+        for i in range(nargs):
+            flags.pop(flag_index)
+
+
+def get_flags(command):
+    flags = includepaths.flags([]) + command.split()[1:]
+    strip_flag(flags, '-c', 1)
+    strip_flag(flags, '-o', 1)
+    return flags
+
+
 class Tree(documentmerger.DocumentMerger):
-    def __init__(self, files, flags):
+    def __init__(self, files, flags, command_db_path=None):
         self.processed = {}
         self.files, ok = self.expand_sources([os.path.realpath(f) for f in files])
+
 
         if not ok:
             sys.exit(1)
 
         self.flags = includepaths.flags(flags)
+        if command_db_path:
+            with open(command_db_path) as command_db_file:
+                self.compile_commands = json.load(command_db_file)
+        else:
+            self.compile_commands = None
 
         # Sort files on sources, then headers
         self.files.sort(lambda a, b: cmp(self.is_header(a), self.is_header(b)))
@@ -154,6 +201,68 @@ class Tree(documentmerger.DocumentMerger):
 
         return None
 
+    def process_file(self, f, directory=None, command=None):
+        """
+        process a single file
+        """
+        if f in self.processed:
+            return
+
+        print('Processing {0}'.format(os.path.basename(f)))
+
+        if directory:
+            assert command is not None, "If directory is supplied, command must also be supplied"
+            with ChangeDir(directory):
+                tu = self.index.parse(f, get_flags(command))
+        else:
+            tu = self.index.parse(f, self.flags)
+
+        if len(tu.diagnostics) != 0:
+            fatal = False
+
+            for d in tu.diagnostics:
+                sys.stderr.write(d.format)
+                sys.stderr.write("\n")
+
+                if d.severity == cindex.Diagnostic.Fatal or \
+                   d.severity == cindex.Diagnostic.Error:
+                    fatal = True
+
+            if fatal:
+                sys.stderr.write("\nCould not generate documentation for %s due to parser errors\n" % (f,))
+                sys.exit(1)
+
+        if not tu:
+            sys.stderr.write("Could not parse file %s...\n" % (f,))
+            sys.exit(1)
+
+        # Extract comments from files and included files that we are
+        # supposed to inspect
+        extractfiles = [f]
+
+        for inc in tu.get_includes():
+            filename = str(inc.include)
+            self.headers[filename] = True
+
+            if filename in self.processed or (not filename in self.files) or filename in extractfiles:
+                continue
+
+            extractfiles.append(filename)
+
+        for e in extractfiles:
+            db = comment.CommentsDatabase(e, tu)
+
+            self.add_categories(db.category_names)
+            self.commentsdbs[e] = db
+
+        self.visit(tu.cursor.get_children())
+
+        for f in self.processing:
+            self.processed[f] = True
+
+        self.processing = {}
+
+
     def process(self):
         """
         process processes all the files with clang and extracts all relevant
@@ -163,58 +272,25 @@ class Tree(documentmerger.DocumentMerger):
         self.index = cindex.Index.create()
         self.headers = {}
 
-        for f in self.files:
-            if f in self.processed:
-                continue
 
-            print('Processing {0}'.format(os.path.basename(f)))
+        num_files = len(self.files)
+        if self.compile_commands:
+            num_compile_commands = len(self.compile_commands)
+        else:
+            num_compile_commands = 0
 
-            tu = self.index.parse(f, self.flags)
+        total_to_process = num_files + num_compile_commands
+        for i, f in enumerate(self.files):
+            progress_percent = 1e2 * i / total_to_process
+            sys.stdout.write('[{:6.2f}%] '.format(progress_percent))
+            self.process_file(f)
 
-            if len(tu.diagnostics) != 0:
-                fatal = False
+        if self.compile_commands:
+            for i, entry in enumerate(self.compile_commands):
+                progress_percent = 1e2 * (i + num_files) / total_to_process
+                sys.stdout.write('[{:6.2f}%] '.format(progress_percent))
+                self.process_file(entry['file'], entry['directory'], entry['command'])
 
-                for d in tu.diagnostics:
-                    sys.stderr.write(d.format)
-                    sys.stderr.write("\n")
-
-                    if d.severity == cindex.Diagnostic.Fatal or \
-                       d.severity == cindex.Diagnostic.Error:
-                        fatal = True
-
-                if fatal:
-                    sys.stderr.write("\nCould not generate documentation due to parser errors\n")
-                    sys.exit(1)
-
-            if not tu:
-                sys.stderr.write("Could not parse file %s...\n" % (f,))
-                sys.exit(1)
-
-            # Extract comments from files and included files that we are
-            # supposed to inspect
-            extractfiles = [f]
-
-            for inc in tu.get_includes():
-                filename = str(inc.include)
-                self.headers[filename] = True
-
-                if filename in self.processed or (not filename in self.files) or filename in extractfiles:
-                    continue
-
-                extractfiles.append(filename)
-
-            for e in extractfiles:
-                db = comment.CommentsDatabase(e, tu)
-
-                self.add_categories(db.category_names)
-                self.commentsdbs[e] = db
-
-            self.visit(tu.cursor.get_children())
-
-            for f in self.processing:
-                self.processed[f] = True
-
-            self.processing = {}
 
         # Construct hierarchy of nodes.
         for node in self.all_nodes:

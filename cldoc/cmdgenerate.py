@@ -88,7 +88,10 @@ def run(args):
     parser.add_argument('--custom-css', default=[], metavar='FILES', action='append',
                           help='specify additional css files to be merged into the html (only for when --output is html)')
 
-    parser.add_argument('files', nargs='+', help='files to parse')
+    parser.add_argument('--compile_commands', default=None,
+                        help='Path to compile_commands.json')
+
+    parser.add_argument('files', nargs='*', help='files to parse')
 
     restargs = args[sep + 1:]
     cxxflags = args[:sep]
@@ -120,7 +123,7 @@ def run(args):
         cxxflags.append('-x')
         cxxflags.append(opts.language)
 
-    t = tree.Tree(opts.files, cxxflags)
+    t = tree.Tree(opts.files, cxxflags, opts.compile_commands)
 
     t.process()
 
