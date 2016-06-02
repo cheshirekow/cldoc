@@ -110,14 +110,17 @@ def get_flags(command):
     flags = includepaths.flags([]) + command.split()[1:]
     strip_flag(flags, '-c', 1)
     strip_flag(flags, '-o', 1)
-    return flags
+    # TODO(josh): remove these hacks
+    while '-Werror' in flags:
+        flags.remove('-Werror')
+    return flags + ['-Wno-mismatched-tags', '-Wno-absolute-value',
+                    '-Wno-ignored-qualifiers', '-Wno-unused-function']
 
 
 class Tree(documentmerger.DocumentMerger):
     def __init__(self, files, flags, command_db_path=None):
         self.processed = {}
         self.files, ok = self.expand_sources([os.path.realpath(f) for f in files])
-
 
         if not ok:
             sys.exit(1)
@@ -553,7 +556,10 @@ class Tree(documentmerger.DocumentMerger):
 
             # Ignore files other than the ones we are scanning for
             if not str(item.location.file) in self.files:
-                continue
+                # TODO(josh): re-enable this check after figuring out how to
+                # match files from compilation database
+                pass
+                # continue
 
             # Ignore unexposed things
             if item.kind == cindex.CursorKind.UNEXPOSED_DECL:

@@ -1098,6 +1098,18 @@ CursorKind.CXX_OVERRIDE_ATTR = CursorKind(405)
 CursorKind.ANNOTATE_ATTR = CursorKind(406)
 CursorKind.ASM_LABEL_ATTR = CursorKind(407)
 CursorKind.PACKED_ATTR = CursorKind(408)
+CursorKind.PURE_ATTR = CursorKind(409)
+CursorKind.CONST_ATTR = CursorKind(410)
+CursorKind.NO_DUPLICATE_ATTR = CursorKind(411)
+CursorKind.CUDA_CONSTANT_ATTR = CursorKind(412)
+CursorKind.CUDA_DEVICE_ATTR = CursorKind(413)
+CursorKind.CUDA_GLOBAL_ATTR = CursorKind(414)
+CursorKind.CUDA_HOST_ATTR = CursorKind(415)
+CursorKind.CUDA_SHARED_ATTR = CursorKind(416)
+CursorKind.VISIBILITY_ATTR = CursorKind(417)
+CursorKind.DLL_EXPORT = CursorKind(418)
+CursorKind.DLL_IMPORT = CursorKind(419)
+
 
 ###
 # Preprocessing
