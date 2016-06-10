@@ -116,9 +116,9 @@ def get_flags(command):
     return flags + ['-Wno-mismatched-tags', '-Wno-absolute-value',
                     '-Wno-ignored-qualifiers', '-Wno-unused-function']
 
-
 class Tree(documentmerger.DocumentMerger):
-    def __init__(self, files, flags, command_db_path=None):
+    def __init__(self, basedir, files, flags, command_db_path=None):
+        self.basedir = basedir
         self.processed = {}
         self.files, ok = self.expand_sources([os.path.realpath(f) for f in files])
 
@@ -560,6 +560,14 @@ class Tree(documentmerger.DocumentMerger):
                 # match files from compilation database
                 pass
                 # continue
+
+            realpath_to_file = os.path.realpath(str(item.location.file))
+            realpath_to_base = os.path.realpath(self.basedir)
+            relpath_from_basedir = os.path.relpath(realpath_to_file,
+                                                   realpath_to_base)
+            # Only include files that are a subpath of basedir
+            if not len(relpath_from_basedir) < len(realpath_to_file):
+                continue
 
             # Ignore unexposed things
             if item.kind == cindex.CursorKind.UNEXPOSED_DECL:

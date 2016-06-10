@@ -40,7 +40,10 @@ class Method(Function):
             return self._override
 
         # Lookup in bases, recursively
-        bases = list(self.parent.bases)
+        if hasattr(self.parent, 'bases'):
+            bases = list(self.parent.bases)
+        else:
+            bases = list()
         mname = self.name
 
         self._override = []

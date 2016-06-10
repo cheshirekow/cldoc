@@ -123,7 +123,7 @@ def run(args):
         cxxflags.append('-x')
         cxxflags.append(opts.language)
 
-    t = tree.Tree(opts.files, cxxflags, opts.compile_commands)
+    t = tree.Tree(opts.basedir, opts.files, cxxflags, opts.compile_commands)
 
     t.process()
 
