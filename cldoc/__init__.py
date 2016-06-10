@@ -26,6 +26,10 @@ def run_generate(args):
     from . import cmdgenerate
     cmdgenerate.run(args)
 
+def run_generate2(args):
+    from . import cmdgenerate2
+    cmdgenerate2.run(args)
+
 def run_gir(args):
     from . import cmdgir
     cmdgir.run(args)
@@ -55,6 +59,8 @@ def run():
         run_serve(rest)
     elif cmd == 'generate':
         run_generate(rest)
+    elif cmd == 'generate2':
+        run_generate2(rest)
     elif cmd == 'gir':
         run_gir(rest)
     elif cmd == '--help' or cmd == '-h':

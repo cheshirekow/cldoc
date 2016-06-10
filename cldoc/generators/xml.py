@@ -59,8 +59,6 @@ class Xml(Generator):
 
         self.write_xml(self.index, 'index.xml')
 
-        print('Generated `{0}\''.format(outdir))
-
     def add_report(self):
         from .report import Report
 
@@ -466,6 +464,11 @@ class Xml(Generator):
         return doce
 
     def call_type_specific(self, node, elem, fn):
+        """Breadth first search of a base class that has a corresponding method
+           in this instance. The correponding method will have a name that
+           matches the classname followed by underscore ('_') follwed by the
+           suffix stored in `fn`."""
+
         clss = [node.__class__]
 
         while len(clss) > 0:

@@ -16,7 +16,7 @@ from defdict import Defdict
 from cldoc.struct import Struct
 from cldoc import utf8
 
-import os, re, sys, bisect
+import logging, os, re, sys, bisect
 
 class Sorted(list):
     def __init__(self, key=None):
@@ -394,8 +394,13 @@ class CommentsDatabase(object):
         if self.parse_cldoc_instruction(token, s.strip()):
             return
 
-        comment = Comment(s, token.location)
-        self.comments.insert(comment)
+        try:
+            comment = Comment(s, token.location)
+            self.comments.insert(comment)
+        except UnicodeDecodeError:
+            logging.warn('Unicode decode error at file {}[{},{}]'.format(
+                         token.location.file, token.location.line, 
+                         token.location.column))
 
     def extract_loop(self, iter):
         token = iter.next()

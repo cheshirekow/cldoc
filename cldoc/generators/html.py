@@ -58,8 +58,6 @@ class Html(Generator):
             fs.fs.rmtree(os.path.join(output, "styles"), True)
             fs.fs.copytree(os.path.join(datadir, "styles"), os.path.join(output, "styles"))
 
-        print('Generated `{0}\''.format(outfile))
-
     def write_search(self, output):
         search = Search(self.tree)
 
