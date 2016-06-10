@@ -31,3 +31,12 @@ command in your project to generate the documentation.
 For an easy introduction into using cldoc, please have a look at the
 [example project](https://github.com/jessevdk/cldoc/tree/master/example) and corresponding
 generated [documentation](http://jessevdk.github.com/cldoc/example/).
+
+# How to run for develpment purposes
+cd `realpath ${PROJECT_BUILD}`
+LD_LIBRARY_PATH=$(llvm-config-3.6 --libdir) PYTHONPATH=${HOME}/Codes/cldoc \
+    python -m cldoc.__init__ generate -- \
+    --compile_commands ${PROJECT_BUILD}/compile_commands.json \
+    --basedir `realpath ${PROJECT_DIR}` \
+    --output /tmp/cldoc
+

@@ -565,7 +565,10 @@ class Tree(documentmerger.DocumentMerger):
             realpath_to_base = os.path.realpath(self.basedir)
             relpath_from_basedir = os.path.relpath(realpath_to_file,
                                                    realpath_to_base)
+
             # Only include files that are a subpath of basedir
+            # NOTE(josh): item.location.file might be relative to the cwd
+            # of the command
             if not len(relpath_from_basedir) < len(realpath_to_file):
                 continue
 
