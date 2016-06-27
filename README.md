@@ -38,5 +38,7 @@ LD_LIBRARY_PATH=$(llvm-config-3.6 --libdir) PYTHONPATH=${HOME}/Codes/cldoc \
     python -m cldoc.__init__ generate2 -- \
     --compile-commands ${PROJECT_BUILD}/compile_commands.json \
     --basedir `realpath ${PROJECT_DIR}` \
-    --output /tmp/cldoc
+    --output /tmp/cldoc \
+    --type html
+
 

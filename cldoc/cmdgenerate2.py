@@ -140,9 +140,9 @@ def run(args):
         doc_tree.cross_ref()
 
         # NOTE(josh): Just for now, commit all nodes
-        for node in doc_tree.all_nodes:
-            sqla_session.add(node)
-            sqla_session.commit()
+        # for node in doc_tree.all_nodes:
+        #    sqla_session.add(node)
+        #    sqla_session.commit()
         run_generate(doc_tree, opts)
 
 # vi:ts=4:et
