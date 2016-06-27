@@ -10,9 +10,21 @@
 # You should have received a copy of the GNU General Public License along with
 # this program; if not, write to the Free Software Foundation, Inc., 51
 # Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+import sqlalchemy
 from .node import Node
 
+
 class Category(Node):
+    __tablename__ = 'category'
+
+    node_id = sqlalchemy.Column(sqlalchemy.Integer, 
+                                sqlalchemy.ForeignKey('node.node_id'), 
+                                primary_key=True)
+    _name = sqlalchemy.Column(sqlalchemy.String)
+    __mapper_args__ = dict(
+        polymorphic_identity='category'
+    )
+
     def __init__(self, name):
         Node.__init__(self, None, None)
 

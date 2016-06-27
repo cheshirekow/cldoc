@@ -14,11 +14,28 @@ from cldoc.clang import cindex
 from cldoc.comment import Comment
 from cldoc.comment import Parser
 
+from cldoc import orm
 from cldoc import utf8
 
+import sqlalchemy
 import re
 
-class Node(object):
+class Node(orm.Base):
+    __tablename__ = 'node'
+
+    node_id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
+    node_type = sqlalchemy.Column(sqlalchemy.String)
+
+    # NOTE(josh): comments are not just text, so we'll need another table
+    # for those.
+    #_comment = sqlalchemy.Column(sqlalchemy.String)
+    _refid = sqlalchemy.Column(sqlalchemy.String)
+
+    __mapper_args__ = dict(
+        polymorphic_identity='node',
+        polymorphic_on='node_type'
+    )
+
     class SortId:
         CATEGORY = 0
         NAMESPACE = 1

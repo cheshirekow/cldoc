@@ -35,8 +35,8 @@ generated [documentation](http://jessevdk.github.com/cldoc/example/).
 # How to run for develpment purposes
 cd `realpath ${PROJECT_BUILD}`
 LD_LIBRARY_PATH=$(llvm-config-3.6 --libdir) PYTHONPATH=${HOME}/Codes/cldoc \
-    python -m cldoc.__init__ generate -- \
-    --compile_commands ${PROJECT_BUILD}/compile_commands.json \
+    python -m cldoc.__init__ generate2 -- \
+    --compile-commands ${PROJECT_BUILD}/compile_commands.json \
     --basedir `realpath ${PROJECT_DIR}` \
     --output /tmp/cldoc
 

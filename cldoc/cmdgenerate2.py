@@ -20,19 +20,23 @@ import logging
 import os
 import sys
 import shutil
+import sqlalchemy
+import sqlalchemy.orm
 import subprocess
 import tempfile
 
+from . import nodes
+from . import orm
 from . import fs, staticsite
 from . import tree
 
-def run_generate(t, opts):
+def run_generate(tree, opts):
     if opts.type != 'html' and opts.type != 'xml':
         return
 
     from . import generators
 
-    generator = generators.Xml(t, opts)
+    generator = generators.Xml(tree, opts)
 
     if opts.type == 'html' and opts.static:
         baseout = fs.fs.mkdtemp()
@@ -43,7 +47,7 @@ def run_generate(t, opts):
     generator.generate(xmlout)
 
     if opts.type == 'html':
-        generators.Html(t).generate(baseout, opts.static, opts.custom_js,
+        generators.Html(tree).generate(baseout, opts.static, opts.custom_js,
                                     opts.custom_css)
 
         if opts.static:
@@ -110,15 +114,23 @@ def run(args):
                         format=format_str,
                         datefmt='%Y-%m-%d %H:%M:%S',
                         filemode='w')
+
+    # Initialize sqlite database
+    db_path = os.path.join(opts.output, 'nodes.sqlite')
+    sqla_engine = sqlalchemy.create_engine('sqlite:///' + db_path)
+    orm.Base.metadata.create_all(sqla_engine)
+    sqla_session = sqlalchemy.orm.sessionmaker(bind=sqla_engine)()
     
     with open(opts.compile_commands) as command_db_file:
             compile_commands = json.load(command_db_file)
     num_commands = len(compile_commands)
+    longest_basename = 10
     for command_idx, compile_command in enumerate(compile_commands):
         progress = 100.0 * command_idx / num_commands
         file_basename = os.path.basename(compile_command['file'])
-        sys.stdout.write('[{:6.2f}%] {}\n'.format(progress,
-                                                   file_basename))
+        format_str = '[{:6.2f}%] {:' + '{}'.format(longest_basename) + 's}\n'
+        longest_basename = max(longest_basename, len(file_basename))
+        sys.stdout.write(format_str.format(progress, file_basename))
         sys.stdout.flush()
         doc_tree = tree.Tree2(opts, extraflags)
         doc_tree.process_file(compile_command['file'],
@@ -126,6 +138,11 @@ def run(args):
                               compile_command['command'])
         doc_tree.post_process()
         doc_tree.cross_ref()
+
+        # NOTE(josh): Just for now, commit all nodes
+        for node in doc_tree.all_nodes:
+            sqla_session.add(node)
+            sqla_session.commit()
         run_generate(doc_tree, opts)
 
 # vi:ts=4:et

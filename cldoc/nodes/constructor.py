@@ -10,11 +10,21 @@
 # You should have received a copy of the GNU General Public License along with
 # this program; if not, write to the Free Software Foundation, Inc., 51
 # Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+import sqlalchemy
 from .method import Method
 
 from cldoc.clang import cindex
 
 class Constructor(Method):
+    __tablename__ = 'constructor'
+
+    node_id = sqlalchemy.Column(sqlalchemy.Integer, 
+                                sqlalchemy.ForeignKey('method.node_id'), 
+                                primary_key=True)
+    __mapper_args__ = dict(
+        polymorphic_identity='constructor'
+    )
+
     kind = cindex.CursorKind.CONSTRUCTOR
 
     def __init__(self, cursor, comment):

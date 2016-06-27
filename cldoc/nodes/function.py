@@ -10,6 +10,7 @@
 # You should have received a copy of the GNU General Public License along with
 # this program; if not, write to the Free Software Foundation, Inc., 51
 # Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+import sqlalchemy
 from .node import Node
 from .namespace import Namespace
 from .ctype import Type
@@ -83,6 +84,15 @@ class Argument:
         return False
 
 class Function(Node):
+    __tablename__ = 'function'
+
+    node_id = sqlalchemy.Column(sqlalchemy.Integer, 
+                                sqlalchemy.ForeignKey('node.node_id'), 
+                                primary_key=True)
+    __mapper_args__ = dict(
+        polymorphic_identity='function'
+    )
+
     kind = cindex.CursorKind.FUNCTION_DECL
 
     def __init__(self, cursor, comment):
